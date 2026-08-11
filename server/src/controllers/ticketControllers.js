@@ -21,6 +21,92 @@ export const createTicketHandler = async (req, res) => {
   }
 };
 
-export const updateTicket = (req,res)=>{
-  
+export const getTickets = async (req, res) => {
+  try {
+    const allTickets = await ticketRepository.getAllTickets();
+
+    if (allTickets.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No tickets found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: allTickets,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+
+export const getSingleTicket = (req, res) => {
+  const { id } = req.params;
+
+  const ticket = ticketRepository.getTicketById(id)
+
+  return res.status(200).json({
+    success: true,
+    data: ticket
+  })
+}
+
+export const assignTo = (req, res) => {
+
+}
+
+export const updateTicketStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    const ticket = await ticketService.updatestatus(id, status);
+
+    return res.status(200).json({
+      success: true,
+      data: ticket
+    });
+  } catch (error) {
+    return res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+
+export async function assignTicket(req, res) {
+  const {id} = req.params
+  const {assignTo} = req.body
+  //check if tickent exists 
+
+  try {
+    const existingTicket = await ticketRepository.getTicketById(id);
+    if (!existingTicket) {
+      throw new Error("Ticket not found");
+    }
+    // 2. Does this user exist?
+    const agent = await userRepository.getUserById(assignedTo);
+    if (!agent) {
+      throw new Error("Assigned user not found");
+    }
+
+    // 3. Is this user actually allowed to have tickets assigned to them?
+    if (agent.role !== "agent" && agent.role !== "admin") {
+      throw new Error("Tickets can only be assigned to agents or admins");
+    }
+
+    // 4. All checks passed — now actually update it
+    return await ticketRepository.assignedTicketTo(id, assignedTo);
+  } catch (error) {
+    return res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
 }

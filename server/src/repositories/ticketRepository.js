@@ -1,4 +1,5 @@
 import { tickets } from "../data/tickets.js";
+import { users } from "../data/users.js";
 
 export const insertTicket = ({
   title,
@@ -28,4 +29,32 @@ export const insertTicket = ({
   return newTicket;
 };
 
+  
+export const getAllTickets = async () => {
 
+return tickets;
+
+};
+
+export let getTicketById = async (id) => {
+  return tickets.find(ticket => ticket.id === Number(id));
+}; 
+
+export let getUserById = async (id) =>{
+  return users.find(user => user.id === Number(id));
+}
+export const updateStatus = async (id, status)=>{
+  const ticket = getTicketById(id);
+
+ const updatedTicket = {
+  ...ticket,
+  status
+};
+
+return updatedTicket;
+
+}
+
+export const assignedTicketTo = async (id ) =>{
+
+} 
