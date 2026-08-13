@@ -12,7 +12,7 @@ export const createTicketHandler = async (req, res) => {
       description,
       priority,
       categoryId,
-      createdBy: req.user.id
+      createdBy: req.user.ticket_id
     });
 
     res.status(201).json({ message: "Ticket created", ticket });
@@ -46,9 +46,9 @@ export const getTickets = async (req, res) => {
 };
 
 export const getSingleTicket = (req, res) => {
-  const { id } = req.params;
+  const { ticket_id } = req.params;
 
-  const ticket = ticketRepository.getTicketById(id)
+  const ticket = ticketRepository.getTicketById(ticket_id)
 
   return res.status(200).json({
     success: true,
@@ -62,10 +62,10 @@ export const assignTo = (req, res) => {
 
 export const updateTicketStatus = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { ticket_id } = req.params;
     const { status } = req.body;
 
-    const ticket = await ticketService.updatestatus(id, status);
+    const ticket = await ticketService.updatestatus(ticket_id, status);
 
     return res.status(200).json({
       success: true,
@@ -81,12 +81,12 @@ export const updateTicketStatus = async (req, res) => {
 
 
 export async function assignTicket(req, res) {
-  const {id} = req.params
+  const {ticket_id} = req.params
   const {assignTo} = req.body
-  //check if tickent exists 
+  //check if ticket exists 
 
   try {
-    const existingTicket = await ticketRepository.getTicketById(id);
+    const existingTicket = await ticketRepository.getTicketById(ticket_id);
     if (!existingTicket) {
       throw new Error("Ticket not found");
     }
@@ -102,7 +102,7 @@ export async function assignTicket(req, res) {
     }
 
     // 4. All checks passed — now actually update it
-    return await ticketRepository.assignedTicketTo(id, assignedTo);
+    return await ticketRepository.assignedTicketTo(ticket_id, assignedTo);
   } catch (error) {
     return res.status(400).json({
       success: false,

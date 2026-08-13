@@ -1,6 +1,6 @@
 export const users = [
   {
-    id: 1,
+    user_id: 1,
     name: "Admin User",
     email: "admin@example.edu.za",
     password: "$2b$10$examplehashedpasswordstringhere",
@@ -9,7 +9,7 @@ export const users = [
     createdAt: "2026-07-01T08:00:00Z"
   },
   {
-    id: 2,
+    user_id: 2,
     name: "Agent Smith",
     email: "agent.smith@example.edu.za",
     password: "$2b$10$examplehashedpasswordstringhere",

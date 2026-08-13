@@ -1,5 +1,5 @@
 export const tickets = [{
-  id: 101,
+  ticket_id: 101,
   title: "Laptop won't turn on",
   description: "...",
   status: "open",

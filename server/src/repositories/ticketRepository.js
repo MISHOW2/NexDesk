@@ -9,7 +9,7 @@ export const insertTicket = ({
   createdBy,
 }) => {
   const newTicket = {
-    id: tickets.length
+    ticket_id: tickets.length
       ? Math.max(...tickets.map(ticket => ticket.id)) + 1
       : 101,
     title,
@@ -36,15 +36,15 @@ return tickets;
 
 };
 
-export let getTicketById = async (id) => {
-  return tickets.find(ticket => ticket.id === Number(id));
+export let getTicketById = async (ticket_id) => {
+  return tickets.find(ticket => ticket.ticket_id === Number(ticket_id));
 }; 
 
-export let getUserById = async (id) =>{
-  return users.find(user => user.id === Number(id));
+export let getUserById = async (user_id) =>{
+  return users.find(user => user.user_id === Number(user_id));
 }
-export const updateStatus = async (id, status)=>{
-  const ticket = getTicketById(id);
+export const updateStatus = async (ticket_id, status)=>{
+  const ticket = getTicketById(ticket_id);
 
  const updatedTicket = {
   ...ticket,
