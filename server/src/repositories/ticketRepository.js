@@ -58,3 +58,8 @@ return updatedTicket;
 export const assignedTicketTo = async (id ) =>{
 
 } 
+
+export const getUsers = async ( id) => {
+  return users.find(user => user.user_id === Number(id));
+
+}
