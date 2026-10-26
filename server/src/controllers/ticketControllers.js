@@ -12,7 +12,7 @@ export const createTicketHandler = async (req, res) => {
       description,
       priority,
       categoryId,
-      createdBy: req.user.ticket_id
+      createdBy: req.user.user_id
     });
 
     res.status(201).json({ message: "Ticket created", ticket });

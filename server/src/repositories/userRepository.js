@@ -2,12 +2,18 @@
 import { users } from "../data/users.js";
 
 export function getUserByEmail(email) {
-  return users.find(u => u.email === email);
+  return users.find(user => user.email === email);
+}
+
+export function getUserById(userId) {
+  return users.find(user => user.user_id === Number(userId));
 }
 
 export function createUser({ name, email, department, password }) {
   const newUser = {
-    id: users.length + 1,
+    user_id: users.length
+      ? Math.max(...users.map(user => user.user_id)) + 1
+      : 1,
     name,
     email,
     department,
@@ -18,4 +24,3 @@ export function createUser({ name, email, department, password }) {
   users.push(newUser);
   return newUser;
 }
-

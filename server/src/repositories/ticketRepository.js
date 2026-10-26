@@ -63,3 +63,9 @@ export const getUsers = async ( id) => {
   return users.find(user => user.user_id === Number(id));
 
 }
+
+export const updatUserRole = async (id, role) => {
+  const user = getUsers(id);  
+  user.role = role; 
+  return user;
+}

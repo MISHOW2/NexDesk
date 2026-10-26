@@ -3,9 +3,9 @@
 import validator from "validator";
 
 export function validatePassword(req, res, next) {
-  const { password } = req.body;
+  const password = req.body?.password;
 
-  if (!password) {
+  if (typeof password !== "string" || !password.trim()) {
     return res.status(400).json({
       message: "Password is required",
     });

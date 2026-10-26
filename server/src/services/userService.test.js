@@ -1,8 +1,11 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import assert from "node:assert/strict";
+import { afterEach, beforeEach, describe, it } from "node:test";
+import jwt from "jsonwebtoken";
 import * as userService from "./userService.js";
 import { users } from "../data/users.js";
 
 const originalUsers = users.map((user) => ({ ...user }));
+const originalJwtSecret = process.env.JWT_SECRET;
 
 beforeEach(() => {
   users.length = 0;
@@ -13,10 +16,15 @@ beforeEach(() => {
 afterEach(() => {
   users.length = 0;
   originalUsers.forEach((user) => users.push({ ...user }));
+  if (originalJwtSecret === undefined) {
+    delete process.env.JWT_SECRET;
+  } else {
+    process.env.JWT_SECRET = originalJwtSecret;
+  }
 });
 
 describe("userService", () => {
-  it("registers a valid user", async () => {
+  it("registers a valid user with a normalized email and hashed password", async () => {
     const newUser = await userService.registerUser({
       name: "Test User",
       email: "TEST@Example.edu.za ",
@@ -25,41 +33,41 @@ describe("userService", () => {
       rePassword: "Password123!",
     });
 
-    expect(newUser).toMatchObject({
-      name: "Test User",
-      email: "test@example.edu.za",
-      department: "it",
-      role: "user",
-    });
-    expect(newUser.password).not.toBe("Password123!");
-    expect(newUser.id).toBeGreaterThan(0);
+    assert.equal(newUser.name, "Test User");
+    assert.equal(newUser.email, "test@example.edu.za");
+    assert.equal(newUser.department, "it");
+    assert.equal(newUser.role, "user");
+    assert.notEqual(newUser.password, "Password123!");
+    assert.ok(newUser.user_id > 0);
   });
 
-  it("throws when registering a user with an existing email", async () => {
-    await expect(
+  it("rejects duplicate emails", async () => {
+    await assert.rejects(
       userService.registerUser({
         name: "Duplicate User",
         email: "admin@example.edu.za",
         department: "IT",
         password: "Password123!",
         rePassword: "Password123!",
-      })
-    ).rejects.toThrow("Registration failed, please contact administrator");
+      }),
+      /Registration failed/
+    );
   });
 
-  it("throws when registering with an invalid department", async () => {
-    await expect(
+  it("rejects invalid departments", async () => {
+    await assert.rejects(
       userService.registerUser({
         name: "Bad Department",
         email: "baddept@example.edu.za",
         department: "marketing",
         password: "Password123!",
         rePassword: "Password123!",
-      })
-    ).rejects.toThrow("Invalid department");
+      }),
+      /Invalid department/
+    );
   });
 
-  it("logs in an existing user with the correct password", async () => {
+  it("logs in and issues a token with the user's canonical ID", async () => {
     const registered = await userService.registerUser({
       name: "Login User",
       email: "login.user@example.edu.za",
@@ -73,16 +81,28 @@ describe("userService", () => {
       password: "Secret123!",
     });
 
-    expect(response.user.email).toBe(registered.email);
-    expect(response.token).toBeTypeOf("string");
+    assert.equal(response.user.email, registered.email);
+    assert.equal(typeof response.token, "string");
+    const claims = jwt.verify(response.token, process.env.JWT_SECRET);
+    assert.equal(claims.user_id, registered.user_id);
+    assert.equal(claims.role, "user");
   });
 
-  it("throws when login password is incorrect", async () => {
-    await expect(
+  it("rejects an incorrect password", async () => {
+    await userService.registerUser({
+      name: "Login User",
+      email: "login.user@example.edu.za",
+      department: "IT",
+      password: "Secret123!",
+      rePassword: "Secret123!",
+    });
+
+    await assert.rejects(
       userService.userLogin({
-        email: "agent.smith@example.edu.za",
+        email: "login.user@example.edu.za",
         password: "WrongPassword",
-      })
-    ).rejects.toThrow("Invalid email or password");
+      }),
+      /Invalid email or password/
+    );
   });
 });
