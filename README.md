@@ -1,125 +1,52 @@
-# TicketFlow
+# NexDesk — React IT Helpdesk
 
-> An IT support ticketing system — built full stack while learning React deeply.
-> Users log support tickets; agents and admins manage, assign, and resolve them.
+A redesigned responsive ticket management frontend inspired by the supplied TicketFlow screens, with a new dark midnight-navy visual identity.
 
+## Run locally
 
----
+1. Open this folder in VS Code.
+2. Open Terminal and run `npm install`.
+3. Run `npm run dev`.
+4. Open the localhost URL printed in the terminal.
+
+Demo account: **admin@nexdesk.demo** with any password of at least four characters. This is a frontend demonstration, not real authentication.
 
 ## Features
 
-- Domain-restricted registration (only approved email domains can sign up, e.g. `@example.edu.za`)
-- Role-based access: **User**, **Agent**, **Admin**
-- Create, view, and track support tickets (status, priority, category)
-- Comment threads on tickets, with internal (agent-only) notes
-- Agent assignment and status workflow
-- Admin panel for user role management
-- Search, filter, and sort on the ticket list
+- Sign in and register UI (demo-only authentication)
+- Responsive dashboard, live ticket statistics and activity
+- Ticket list, search, status/priority/category filters
+- New ticket form with priority selection
+- Ticket details, editable status/assignment, and comments
+- User directory and admin role editing
+- Browser localStorage persistence
 
-## Tech Stack
+## Important
 
-**Frontend**
-- React (Vite)
-- React Router
-- Context API for auth state
+All data and sign-in state are stored **only in your browser**, not on a server. Do not use real credentials or confidential ticket information. For production, add a secure backend, database, role authorization, password hashing, and API validation.
 
-**Backend**
-- Node.js + Express (ES Modules)
-- JWT authentication
-- bcrypt for password hashing
+## v2 additions
 
-**Database**
-- PostgreSQL (raw SQL — no ORM, by design, for deeper learning)
+- Dark midnight-navy theme with Lucide icons throughout
+- **Role-based experience:** Users get a personal dashboard (own tickets, resolution ring, service status, quick actions); Agents/Admins get the staff dashboard
+- New pages: Knowledge base, Reports (agents/admins), Settings (profile + notifications)
+- Tickets now record who reported them; Users only see their own tickets and cannot change status/assignee
+- Admins can delete tickets; one-click demo accounts on the sign-in screen (Admin, Agent, User)
 
----
+## v3 additions (professional edition)
 
-## Getting Started
+- **Professional palette:** neutral slate + blue accent, light theme by default with a dark theme toggle (saved per browser). Colours live in `src/tokens.css`.
+- **Command palette:** press `Ctrl/⌘ + K` to jump to pages, tickets and actions.
+- **SLA tracking:** response targets by priority (Urgent 4h, High 8h, Medium 24h, Low 72h) with live "left / breached" indicators.
+- **Ticket queue:** sortable columns, saved-style views (Mine, Unassigned, Urgent, SLA breached), pagination, bulk status/assign, CSV export.
+- **Ticket detail:** activity timeline, internal notes (staff only), tags, attachments (names only in this demo), priority editing, Assign-to-me / Resolve / Reopen.
+- **Dashboards & reports:** 7-day trend line, priority donut, status split, SLA-breach counts.
+- **Notifications** driven by real ticket activity, with unread indicator.
+- **Smart suggestions** of knowledge-base articles while typing a new ticket; article feedback buttons.
+- Real icon set throughout (Lucide, per-category icons) and an SVG favicon.
 
-### Backend
-```bash
-cd server
-npm install
-npm run dev
-```
-Server runs on `http://localhost:5000` (adjust as needed).
+Run: `npm install` then `npm run dev`. If you copied an old `node_modules` from another computer, delete it first.
 
-### Frontend
-```bash
-cd client
-npm install
-npm run dev
-```
-App runs on `http://localhost:5173`.
-
-### Environment Variables
-Create a `.env` file in `/server`:
-```
-PORT=5000
-JWT_SECRET=your_secret_here
-ALLOWED_EMAIL_DOMAIN=example.edu.za
-DATABASE_URL=postgres://user:password@localhost:5432/ticketflow
-```
-
----
-
-## API Documentation
-
-_To be filled in as endpoints are built — see `ROADMAP.md` for planned routes._
-
-| Method | Endpoint | Description | Auth Required |
-|--------|----------|-------------|----------------|
-| POST | `/api/auth/register` | Register new user (domain-restricted) | No |
-| POST | `/api/auth/login` | Login, returns JWT | No |
-| GET | `/api/tickets` | List tickets (filter/search/sort) | Yes |
-| GET | `/api/tickets/:id` | Get single ticket | Yes |
-| POST | `/api/tickets` | Create ticket | Yes |
-| PATCH | `/api/tickets/:id` | Update ticket status | Yes (agent/admin) |
-| PATCH | `/api/tickets/:id/assign` | Assign ticket to agent | Yes (agent/admin) |
-| GET | `/api/tickets/:id/comments` | Get comments for a ticket | Yes |
-| POST | `/api/tickets/:id/comments` | Add comment | Yes |
-| GET | `/api/users` | List all users | Yes (admin) |
-| PATCH | `/api/users/:id/role` | Change user role | Yes (admin) |
-
----
-
-## Screenshots
-
-_Coming soon as frontend is built._
-
----
-
-## What I Learned
-
-Architecture & Design Patterns
-
-Layered architecture: routes → middleware → controllers → services → repositories, each with a single responsibility
-Repository pattern: isolating data access so swapping mock data for PostgreSQL later won't touch business logic or routes
-Why business rules (domain checks, duplicate checks, password matching) belong in the service layer, not the repository — repositories should stay "dumb" and only handle storage
-
-Security Concepts
-
-Never send password hashes back in API responses, even hashed ones
-Password hashing with bcrypt — hash before storage, compare on login (never store or compare plain text)
-JWT payload design: only include what's needed for identity + authorization (id, role) — never include PII or data that can go stale (email, name), since the token can't be updated once issued and lives for its full expiry
-User enumeration prevention: using the same generic error message for "user not found" and "wrong password," and for "email already registered," so attackers can't probe which emails exist in your system
-Rate limiting to prevent abuse/spam on sensitive endpoints like registration
-Fail loudly on missing server configuration (ALLOWED_EMAIL_DOMAIN, JWT_SECRET) rather than silently misbehaving
-Input validation at multiple layers: required fields, domain whitelisting, password strength requirements, department whitelisting
-
-Data Integrity
-
-Email normalization (.trim().toLowerCase()) to prevent duplicate accounts differing only by case
-Explicit field destructuring in repository functions so unexpected/malicious fields can't sneak into stored objects
-Keeping ID generation and default field values (role, createdAt) centralized in the repository, not scattered across every caller
-
-Tooling & Workflow
-
-Git commit discipline: small, logical, well-labeled commits (Conventional Commits style) that tell a story of incremental progress
-Postman for manually testing edge cases before considering a feature "done" — not just the happy path, but failure modes too
-Using .env for configuration/secrets, and guarding against missing required env vars
-
----
-
-## Roadmap
-
-See [`ROADMAP.md`](./ROADMAP.md) for the full milestone-by-milestone build plan.
+## v3.1
+- Sidebar scrolls and has a dedicated **Sign out** button (fixes Admin view where it was pushed off-screen).
+- **Admin user management:** add users (name, email, department, role), change roles, remove users, and **Assign tickets** to any Agent/Admin from the Manage users page.
