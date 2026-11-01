@@ -1,52 +1,68 @@
-# NexDesk — React IT Helpdesk
+# TicketFlow
 
-A redesigned responsive ticket management frontend inspired by the supplied TicketFlow screens, with a new dark midnight-navy visual identity.
+TicketFlow is an IT helpdesk project with a React demo frontend and an Express API prototype. The frontend and backend are currently separate: the frontend uses browser `localStorage` and does not call the API. Backend data is held in memory and resets when the server restarts. PostgreSQL is planned for a later learning milestone.
 
-## Run locally
+## Requirements
 
-1. Open this folder in VS Code.
-2. Open Terminal and run `npm install`.
-3. Run `npm run dev`.
-4. Open the localhost URL printed in the terminal.
+- Node.js and npm
 
-Demo account: **admin@nexdesk.demo** with any password of at least four characters. This is a frontend demonstration, not real authentication.
+## Run the frontend demo
 
-## Features
+In a terminal:
 
-- Sign in and register UI (demo-only authentication)
-- Responsive dashboard, live ticket statistics and activity
-- Ticket list, search, status/priority/category filters
-- New ticket form with priority selection
-- Ticket details, editable status/assignment, and comments
-- User directory and admin role editing
-- Browser localStorage persistence
+```powershell
+cd client
+npm install
+npm run dev
+```
 
-## Important
+Open the localhost URL printed by Vite. The sign-in accounts and application data are demo-only and stored in the browser; do not enter real credentials or confidential ticket information.
 
-All data and sign-in state are stored **only in your browser**, not on a server. Do not use real credentials or confidential ticket information. For production, add a secure backend, database, role authorization, password hashing, and API validation.
+## Run the backend API prototype
 
-## v2 additions
+In a separate terminal:
 
-- Dark midnight-navy theme with Lucide icons throughout
-- **Role-based experience:** Users get a personal dashboard (own tickets, resolution ring, service status, quick actions); Agents/Admins get the staff dashboard
-- New pages: Knowledge base, Reports (agents/admins), Settings (profile + notifications)
-- Tickets now record who reported them; Users only see their own tickets and cannot change status/assignee
-- Admins can delete tickets; one-click demo accounts on the sign-in screen (Admin, Agent, User)
+```powershell
+cd server
+npm install
+Copy-Item .env.example .env
+```
 
-## v3 additions (professional edition)
+Edit `server/.env` and set `JWT_SECRET` to a private development secret. Then start the API:
 
-- **Professional palette:** neutral slate + blue accent, light theme by default with a dark theme toggle (saved per browser). Colours live in `src/tokens.css`.
-- **Command palette:** press `Ctrl/⌘ + K` to jump to pages, tickets and actions.
-- **SLA tracking:** response targets by priority (Urgent 4h, High 8h, Medium 24h, Low 72h) with live "left / breached" indicators.
-- **Ticket queue:** sortable columns, saved-style views (Mine, Unassigned, Urgent, SLA breached), pagination, bulk status/assign, CSV export.
-- **Ticket detail:** activity timeline, internal notes (staff only), tags, attachments (names only in this demo), priority editing, Assign-to-me / Resolve / Reopen.
-- **Dashboards & reports:** 7-day trend line, priority donut, status split, SLA-breach counts.
-- **Notifications** driven by real ticket activity, with unread indicator.
-- **Smart suggestions** of knowledge-base articles while typing a new ticket; article feedback buttons.
-- Real icon set throughout (Lucide, per-category icons) and an SVG favicon.
+```powershell
+npm run dev
+```
 
-Run: `npm install` then `npm run dev`. If you copied an old `node_modules` from another computer, delete it first.
+The API listens on the port set by `PORT` (3000 in the example configuration). Run the backend tests from `server` with:
 
-## v3.1
-- Sidebar scrolls and has a dedicated **Sign out** button (fixes Admin view where it was pushed off-screen).
-- **Admin user management:** add users (name, email, department, role), change roles, remove users, and **Assign tickets** to any Agent/Admin from the Manage users page.
+```powershell
+npm test
+```
+
+The API currently has authentication routes (`/api/auth/register`, `/api/auth/login`, and `/api/auth/me`) and ticket route work in progress. It is not connected to the demo frontend, and its in-memory data is not durable. Do not use it to store real user or ticket data.
+
+## Project layout
+
+```text
+client/                 React + Vite demo frontend
+  src/                  Frontend UI and styles
+server/                 Express API prototype
+  src/
+    constants/          Shared backend constants
+    controllers/        HTTP request handlers
+    data/               In-memory prototype data
+    middlewares/        Request and authentication middleware
+    repositories/       Data access layer
+    routes/             API route definitions and route tests
+    services/           Application logic and service tests
+    validation/         Backend input validation
+README.md               Setup and project status
+ROADMAP.md              Learning and feature milestones
+```
+
+## Configuration and safety
+
+The backend reads `PORT`, `JWT_SECRET`, and `ALLOWED_EMAIL_DOMAIN` from `server/.env`. Use `server/.env.example` as a starting point; never commit `.env` or put a real secret in the example file. The frontend currently has no environment configuration because it does not call the backend.
+
+This project is still under development. The backend has no database yet, and frontend demo authentication is not real authentication. Before production use, connect the frontend to the API, add durable storage and authorization, and review deployment security.
