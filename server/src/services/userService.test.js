@@ -1,22 +1,29 @@
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
+import "dotenv/config";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import * as userService from "./userService.js";
-import { users } from "../data/users.js";
+import { query } from "../data/db.js";
 
-const originalUsers = users.map((user) => ({ ...user }));
 const originalJwtSecret = process.env.JWT_SECRET;
+const testEmails = new Set();
+
+function uniqueEmail(prefix) {
+  const email = `${prefix}.${process.pid}.${randomUUID()}@example.edu.za`;
+  testEmails.add(email);
+  return email;
+}
 
 describe("userService", () => {
   beforeEach(() => {
-    users.length = 0;
-    originalUsers.forEach((user) => users.push({ ...user }));
     process.env.JWT_SECRET = "test-jwt-secret";
   });
 
-  afterEach(() => {
-    users.length = 0;
-    originalUsers.forEach((user) => users.push({ ...user }));
-
+  afterEach(async () => {
+    for (const email of testEmails) {
+      await query("DELETE FROM users WHERE email = $1", [email]);
+    }
+    testEmails.clear();
     if (originalJwtSecret === undefined) {
       delete process.env.JWT_SECRET;
     } else {
@@ -25,16 +32,17 @@ describe("userService", () => {
   });
 
   it("registers a valid user", async () => {
+    const email = uniqueEmail("test");
     const newUser = await userService.registerUser({
       name: "Test User",
-      email: "TEST@Example.edu.za ",
+      email: `${email.toUpperCase()} `,
       department: "IT",
       password: "Password123!",
       rePassword: "Password123!",
     });
 
     assert.equal(newUser.name, "Test User");
-    assert.equal(newUser.email, "test@example.edu.za");
+    assert.equal(newUser.email, email);
     assert.equal(newUser.department, "it");
     assert.equal(newUser.role, "user");
     assert.notEqual(newUser.password, "Password123!");
@@ -42,10 +50,19 @@ describe("userService", () => {
   });
 
   it("throws when registering a user with an existing email", async () => {
+    const email = uniqueEmail("duplicate");
+    await userService.registerUser({
+      name: "Existing User",
+      email,
+      department: "IT",
+      password: "Password123!",
+      rePassword: "Password123!",
+    });
+
     await assert.rejects(
       userService.registerUser({
         name: "Duplicate User",
-        email: "admin@example.edu.za",
+        email,
         department: "IT",
         password: "Password123!",
         rePassword: "Password123!",
@@ -68,16 +85,17 @@ describe("userService", () => {
   });
 
   it("logs in an existing user with the correct password", async () => {
+    const email = uniqueEmail("login");
     const registered = await userService.registerUser({
       name: "Login User",
-      email: "login.user@example.edu.za",
+      email,
       department: "IT",
       password: "Secret123!",
       rePassword: "Secret123!",
     });
 
     const { user, token } = await userService.userLogin({
-      email: "login.user@example.edu.za",
+      email,
       password: "Secret123!",
     });
 
@@ -86,9 +104,18 @@ describe("userService", () => {
   });
 
   it("throws when login password is incorrect", async () => {
+    const email = uniqueEmail("wrong-password");
+    await userService.registerUser({
+      name: "Password Test",
+      email,
+      department: "IT",
+      password: "CorrectPassword123!",
+      rePassword: "CorrectPassword123!",
+    });
+
     await assert.rejects(
       userService.userLogin({
-        email: "agent.smith@example.edu.za",
+        email,
         password: "WrongPassword",
       }),
       { message: "Invalid email or password" }

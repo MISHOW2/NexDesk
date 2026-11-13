@@ -1,26 +1,33 @@
-//repositories/userRepositories
-import { users } from "../data/users.js";
+import pool from "../data/db.js";
 
-export function getUserByEmail(email) {
-  return users.find(user => user.email === email);
-}
-
-export function getUserById(userId) {
-  return users.find(user => user.user_id === Number(userId));
-}
-
-export function createUser({ name, email, department, password }) {
-  const newUser = {
-    user_id: users.length
-      ? Math.max(...users.map(user => user.user_id)) + 1
-      : 1,
-    name,
-    email,
-    department,
-    password,
-    role: "user",
-    createdAt: new Date().toISOString()
+// The database uses snake_case; the rest of your app expects these field names.
+const toUser = (row) =>
+  row && {
+    user_id: Number(row.user_id),
+    name: row.name,
+    email: row.email,
+    department: row.department,
+    password: row.password_hash,
+    role: String(row.role).toLowerCase(),
+    createdAt: row.created_at,
   };
-  users.push(newUser);
-  return newUser;
+
+export async function getUserByEmail(email) {
+  const { rows } = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
+  return toUser(rows[0]);
+}
+
+export async function getUserById(userId) {
+  const { rows } = await pool.query("SELECT * FROM users WHERE user_id = $1", [userId]);
+  return toUser(rows[0]);
+}
+
+export async function createUser({ name, email, department, password }) {
+  const { rows } = await pool.query(
+    `INSERT INTO users (name, email, department, password_hash)
+     VALUES ($1, $2, $3, $4)
+     RETURNING *`,
+    [name, email, department, password]
+  );
+  return toUser(rows[0]);
 }

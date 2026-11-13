@@ -1,71 +1,88 @@
-import { tickets } from "../data/tickets.js";
-import { users } from "../data/users.js";
+import { query } from "../data/db.js";
+import { canManageTickets } from "../utils/ticketAccess.js";
 
-export const insertTicket = ({
+const ticketColumns = `
+  ticket_id,
+  title,
+  description,
+  status,
+  priority,
+  category_id AS "categoryId",
+  created_by AS "createdBy",
+  assigned_to AS "assignedTo",
+  created_at AS "createdAt",
+  updated_at AS "updatedAt",
+  resolved_at AS "resolvedAt"
+`;
+
+function parseTicketId(ticketId) {
+  const parsedId = Number(ticketId);
+  return Number.isInteger(parsedId) && parsedId > 0 ? parsedId : null;
+}
+
+export async function insertTicket({
   title,
   description,
   priority,
   categoryId,
   createdBy,
-}) => {
-  const newTicket = {
-    ticket_id: tickets.length
-      ? Math.max(...tickets.map(ticket => ticket.id)) + 1
-      : 101,
-    title,
-    description,
-    status: "open",
-    priority,
-    categoryId,
-    createdBy,
-    assignedTo: null,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    resolvedAt: null,
-  };
+}) {
+  const result = await query(
+    `INSERT INTO tickets (title, description, priority, category_id, created_by)
+     VALUES ($1, $2, $3, $4, $5)
+     RETURNING ${ticketColumns}`,
+    [title, description, priority, categoryId, createdBy]
+  );
 
-  tickets.push(newTicket);
-
-  return newTicket;
-};
-
-  
-export const getAllTickets = async () => {
-
-return tickets;
-
-};
-
-export let getTicketById = async (ticket_id) => {
-  return tickets.find(ticket => ticket.ticket_id === Number(ticket_id));
-}; 
-
-export let getUserById = async (user_id) =>{
-  return users.find(user => user.user_id === Number(user_id));
-}
-export const updateStatus = async (ticket_id, status)=>{
-  const ticket = getTicketById(ticket_id);
-
- const updatedTicket = {
-  ...ticket,
-  status
-};
-
-return updatedTicket;
-
+  return result.rows[0];
 }
 
-export const assignedTicketTo = async (id ) =>{
-
-} 
-
-export const getUsers = async ( id) => {
-  return users.find(user => user.user_id === Number(id));
-
+export async function getAllTickets(user) {
+  const canManage = canManageTickets(user);
+  const result = await query(
+    `SELECT ${ticketColumns}
+     FROM tickets
+     WHERE $2 OR created_by = $1
+     ORDER BY ticket_id DESC`,
+    [user.user_id, canManage]
+  );
+  return result.rows;
 }
 
-export const updatUserRole = async (id, role) => {
-  const user = getUsers(id);  
-  user.role = role; 
-  return user;
+export async function getTicketById(ticketId, user) {
+  const id = parseTicketId(ticketId);
+  if (id === null) {
+    return undefined;
+  }
+
+  const canManage = canManageTickets(user);
+  const result = await query(
+    `SELECT ${ticketColumns}
+     FROM tickets
+     WHERE ticket_id = $1
+       AND ($3 OR created_by = $2)`,
+    [id, user.user_id, canManage]
+  );
+  return result.rows[0];
+}
+
+export async function updateStatus(ticketId, status) {
+  const id = parseTicketId(ticketId);
+  if (id === null) {
+    return undefined;
+  }
+
+  const result = await query(
+    `UPDATE tickets
+     SET status = $2,
+         updated_at = NOW(),
+         resolved_at = CASE
+           WHEN $2 = 'resolved' THEN COALESCE(resolved_at, NOW())
+           ELSE NULL
+         END
+     WHERE ticket_id = $1
+     RETURNING ${ticketColumns}`,
+    [id, status]
+  );
+  return result.rows[0];
 }

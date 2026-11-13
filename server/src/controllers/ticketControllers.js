@@ -1,40 +1,48 @@
 import * as ticketRepository from "../repositories/ticketRepository.js";
 import { validateFieldInputs } from "../validation/validateFieldInputs.js";
+import { isTicketCategoryId } from "../constants/ticketCategories.js";
+import { canManageTickets } from "../utils/ticketAccess.js";
 
 export const createTicketHandler = async (req, res) => {
+  const { title, description, priority, categoryId } = req.body;
+
   try {
-    const { title, description, priority, categoryId } = req.body;
-
     validateFieldInputs({ title, description, priority, categoryId });
+    const parsedCategoryId = Number(categoryId);
+    if (!Number.isInteger(parsedCategoryId) || !isTicketCategoryId(parsedCategoryId)) {
+      return res.status(400).json({ message: "Invalid categoryId" });
+    }
+    const normalizedPriority = priority.trim().toLowerCase();
+    if (!["low", "medium", "high", "urgent"].includes(normalizedPriority)) {
+      return res.status(400).json({ message: "Invalid priority" });
+    }
+  } catch (error) {
+    return res.status(400).json({ message: error.message });
+  }
 
-    const ticket = ticketRepository.insertTicket({
+  try {
+    const ticket = await ticketRepository.insertTicket({
       title,
       description,
-      priority,
-      categoryId,
+      priority: priority.trim().toLowerCase(),
+      categoryId: Number(categoryId),
       createdBy: req.user.user_id
     });
 
     res.status(201).json({ message: "Ticket created", ticket });
-  } catch (err) {
-    res.status(400).json({ message: err.message });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Unable to create ticket",
+      error: error.message,
+    });
   }
 };
 
 export const getTickets = async (req, res) => {
   try {
-    const allTickets = await ticketRepository.getAllTickets();
-
-    if (allTickets.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "No tickets found",
-      });
-    }
-
     return res.status(200).json({
       success: true,
-      data: allTickets,
+      data: await ticketRepository.getAllTickets(req.user),
     });
   } catch (error) {
     return res.status(500).json({
@@ -45,68 +53,63 @@ export const getTickets = async (req, res) => {
   }
 };
 
-export const getSingleTicket = (req, res) => {
-  const { ticket_id } = req.params;
+export const getSingleTicket = async (req, res) => {
+  try {
+    const ticket = await ticketRepository.getTicketById(req.params.ticket_id, req.user);
+    if (!ticket) {
+      return res.status(404).json({
+        success: false,
+        message: "Ticket not found",
+      });
+    }
 
-  const ticket = ticketRepository.getTicketById(ticket_id)
-
-  return res.status(200).json({
-    success: true,
-    data: ticket
-  })
-}
-
-export const assignTo = (req, res) => {
-
-}
+    return res.status(200).json({ success: true, data: ticket });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
 
 export const updateTicketStatus = async (req, res) => {
+  if (!canManageTickets(req.user)) {
+    return res.status(403).json({
+      success: false,
+      message: "Only IT department users, agents, and admins can update ticket status",
+    });
+  }
+
   try {
-    const { ticket_id } = req.params;
+    const { ticket_id: ticketId } = req.params;
     const { status } = req.body;
 
-    const ticket = await ticketService.updatestatus(ticket_id, status);
+    validateFieldInputs({ status });
+    const normalizedStatus = status.trim().toLowerCase().replaceAll(" ", "_");
+    if (!["open", "in_progress", "resolved", "closed"].includes(normalizedStatus)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid ticket status",
+      });
+    }
+
+    const ticket = await ticketRepository.updateStatus(ticketId, normalizedStatus);
+    if (!ticket) {
+      return res.status(404).json({
+        success: false,
+        message: "Ticket not found",
+      });
+    }
 
     return res.status(200).json({
       success: true,
       data: ticket
     });
   } catch (error) {
-    return res.status(400).json({
+    return res.status(error.code ? 500 : 400).json({
       success: false,
       message: error.message
     });
   }
 };
-
-
-export async function assignTicket(req, res) {
-  const {ticket_id} = req.params
-  const {assignTo} = req.body
-  //check if ticket exists 
-
-  try {
-    const existingTicket = await ticketRepository.getTicketById(ticket_id);
-    if (!existingTicket) {
-      throw new Error("Ticket not found");
-    }
-    // 2. Does this user exist?
-    const agent = await userRepository.getUserById(assignedTo);
-    if (!agent) {
-      throw new Error("Assigned user not found");
-    }
-
-    // 3. Is this user actually allowed to have tickets assigned to them?
-    if (agent.role !== "agent" && agent.role !== "admin") {
-      throw new Error("Tickets can only be assigned to agents or admins");
-    }
-
-    // 4. All checks passed — now actually update it
-    return await ticketRepository.assignedTicketTo(ticket_id, assignedTo);
-  } catch (error) {
-    return res.status(400).json({
-      success: false,
-      message: error.message
-    });
-  }
-}
