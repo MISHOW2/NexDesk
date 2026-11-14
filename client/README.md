@@ -22,5 +22,6 @@ npm run dev
 npm run build
 ```
 
-Set `VITE_API_URL` to the API base URL, including `/api`. For a local server, use
+The client defaults to the deployed API at `https://nexdesk-iamc.onrender.com/api`.
+Set `VITE_API_URL` to override it. For a local server, use
 `http://localhost:5000/api`.

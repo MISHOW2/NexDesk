@@ -1,4 +1,4 @@
-const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/+$/, '');
+const API_URL = (import.meta.env.VITE_API_URL || 'https://nexdesk-iamc.onrender.com/api').replace(/\/+$/, '');
 
 const categoryIds = {
   Hardware: 1,

@@ -1,12 +1,12 @@
 # TicketFlow
 
-TicketFlow is an IT helpdesk project with a React demo frontend and an Express API prototype. The frontend and backend are currently separate: the frontend uses browser `localStorage` and does not call the API. Backend data is held in memory and resets when the server restarts. PostgreSQL is planned for a later learning milestone.
+TicketFlow is an IT helpdesk project with a React frontend and an Express API. The client uses the API for authentication and supported ticket operations; user and ticket data are stored in PostgreSQL. Browser `localStorage` retains the signed-in session and UI preferences. Some features without API endpoints remain client-side only.
 
 ## Requirements
 
 - Node.js and npm
 
-## Run the frontend demo
+## Run the frontend
 
 In a terminal:
 
@@ -16,31 +16,30 @@ npm install
 npm run dev
 ```
 
-Open the localhost URL printed by Vite. The sign-in accounts and application data are demo-only and stored in the browser; do not enter real credentials or confidential ticket information.
+Open the localhost URL printed by Vite. By default, the client uses the deployed API at `https://nexdesk-iamc.onrender.com/api`. To use a local API instead, set `VITE_API_URL=http://localhost:5000/api` in `client/.env`.
 
-## Run the backend API prototype
+## Run the backend API locally
 
 In a separate terminal:
 
 ```powershell
 cd server
 npm install
-Copy-Item .env.example .env
 ```
 
-Edit `server/.env` and set `JWT_SECRET` to a private development secret. Then start the API:
+Configure `server/.env` as described in [server/README.md](./server/README.md), then start the API:
 
 ```powershell
 npm run dev
 ```
 
-The API listens on the port set by `PORT` (3000 in the example configuration). Run the backend tests from `server` with:
+The API listens on `PORT` (5000 by default). Run the backend tests from `server` with:
 
 ```powershell
 npm test
 ```
 
-The API currently has authentication routes (`/api/auth/register`, `/api/auth/login`, and `/api/auth/me`) and ticket route work in progress. It is not connected to the demo frontend, and its in-memory data is not durable. Do not use it to store real user or ticket data.
+The API provides authentication and ticket endpoints. See [server/README.md](./server/README.md) for routes, database setup, and current limitations.
 
 ## Project layout
 
@@ -51,7 +50,7 @@ server/                 Express API prototype
   src/
     constants/          Shared backend constants
     controllers/        HTTP request handlers
-    data/               In-memory prototype data
+    data/               PostgreSQL connection pool
     middlewares/        Request and authentication middleware
     repositories/       Data access layer
     routes/             API route definitions and route tests
@@ -63,6 +62,6 @@ ROADMAP.md              Learning and feature milestones
 
 ## Configuration and safety
 
-The backend reads `PORT`, `JWT_SECRET`, and `ALLOWED_EMAIL_DOMAIN` from `server/.env`. Use `server/.env.example` as a starting point; never commit `.env` or put a real secret in the example file. The frontend currently has no environment configuration because it does not call the backend.
+The backend reads `PORT`, `JWT_SECRET`, `ALLOWED_EMAIL_DOMAIN`, and its PostgreSQL connection settings from `server/.env`. Never commit `.env` or expose database credentials. The frontend uses `VITE_API_URL` to override its default API URL.
 
-This project is still under development. The backend has no database yet, and frontend demo authentication is not real authentication. Before production use, connect the frontend to the API, add durable storage and authorization, and review deployment security.
+This project is still under development. Some frontend features are not yet synchronized with the API. Review the backend limitations and deployment security before production use.
