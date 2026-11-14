@@ -1,13 +1,9 @@
+import 'dotenv/config';
 import express from 'express';
-import dotenv from 'dotenv';
-
 import cors from "cors";
 import authRoutes from './routes/authRoutes.js';
-import ticketRoutes from './routes/ticketRoutes.js'
+import ticketRoutes from './routes/ticketRoutes.js';
 import pool from "./data/db.js";
-
- 
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -18,12 +14,13 @@ app.get('/', (req, res) => {
   res.send('TicketFlow API is running');
 });
 
-app.use('/api/auth/', authRoutes)
-app.use('/api/tickets/', ticketRoutes)
+app.use('/api/auth/', authRoutes);
+app.use('/api/tickets/', ticketRoutes);
 
 async function startServer() {
   try {
     await pool.query("SELECT 1");
+    console.log("Connected to PostgreSQL");
 
     app.listen(PORT, () => {
       console.log(`Server listening on PORT ${PORT}`);

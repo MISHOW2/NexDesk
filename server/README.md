@@ -27,14 +27,12 @@ Create `server/.env` with:
 PORT=5000
 JWT_SECRET=replace-with-a-long-random-secret
 ALLOWED_EMAIL_DOMAIN=example.edu.za
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=ticketflow
-DB_USER=postgres
-DB_PASSWORD=your-postgres-password
+DATABASE_URL=postgresql://postgres:your-postgres-password@localhost:5432/ticketflow
 ```
 
-Create a PostgreSQL database named `ticketflow` in pgAdmin (or use the name of an existing database). Use the host, port, and username shown in your pgAdmin server connection properties, and the password for that PostgreSQL user. Apply the schemas from `server/sql/001_create_tickets.sql` and `server/sql/002_create_users.sql` in that database's Query Tool. The server checks its PostgreSQL connection before listening, so it will report a clear error if the connection settings are incomplete or the database cannot be reached. A `DATABASE_URL` or the standard `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, and `PGPASSWORD` variables can also be used.
+For local PostgreSQL, create a database named `ticketflow` and set `DATABASE_URL` to its connection string. Alternatively, configure `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, and `DB_PASSWORD`.
+
+For Supabase, use the **Shared pooler** connection string from **Connect** and set it as `DATABASE_URL` in `server/.env` and in your hosting provider's environment settings. For the current `pg-connection-string` compatibility behavior, append `?uselibpqcompat=true&sslmode=require` (or `&uselibpqcompat=true` if the URL already has query parameters). This encrypts the connection but does not verify the server certificate; for certificate verification, download the Supabase CA certificate and configure `sslmode=verify-full` with `sslrootcert`. Keep the database password private and do not commit `.env`. Apply the schemas from `server/sql/001_create_tickets.sql` and `server/sql/002_create_users.sql` using the Supabase SQL Editor or pgAdmin Query Tool. The server checks its PostgreSQL connection before listening and reports an error if it cannot connect.
 
 Use a private, randomly generated `JWT_SECRET`; never commit your `.env` file. Set `ALLOWED_EMAIL_DOMAIN` to the email domain allowed to register (without the `@`). Then start the API:
 
