@@ -1,4 +1,4 @@
-# TicketFlow
+# Nex Desk
 
 TicketFlow is an IT helpdesk project with a React frontend and an Express API. The client uses the API for authentication and supported ticket operations; user and ticket data are stored in PostgreSQL. Browser `localStorage` retains the signed-in session and UI preferences. Some features without API endpoints remain client-side only.
 
