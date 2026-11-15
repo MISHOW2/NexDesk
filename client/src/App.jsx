@@ -25,6 +25,7 @@ import TicketDetailPage from './pages/TicketDetailPage.jsx';
 import KnowledgeBasePage from './pages/KnowledgeBasePage.jsx';
 import ReportsPage from './pages/ReportsPage.jsx';
 import SettingsPage from './pages/SettingsPage.jsx';
+import UserManagementPage from './pages/UserManagementPage.jsx';
 
 export default function App() {
   const [auth, setAuth] = useState(() => {
@@ -33,6 +34,9 @@ export default function App() {
     return user && token ? { ...user, token } : null;
   });
   const [tickets, setTickets] = useState([]);
+  const [agents, setAgents] = useState([]);
+  const [agentsLoading, setAgentsLoading] = useState(false);
+  const [agentsRevision, setAgentsRevision] = useState(0);
   const [ticketsLoading, setTicketsLoading] = useState(false);
   const [theme, setTheme] = useState(() => readStoredValue('nexdesk-theme', 'light'));
   const [page, setPage] = useState('Dashboard');
@@ -80,19 +84,32 @@ export default function App() {
   useEffect(() => {
     if (!auth) {
       setTickets([]);
+      setAgents([]);
       setTicketsLoading(false);
+      setAgentsLoading(false);
       return undefined;
     }
 
     let active = true;
     setTicketsLoading(true);
+    if (isStaff) {
+      setAgents([]);
+      setAgentsLoading(true);
+      api.getTicketAssignees(auth)
+        .then(data => { if (active) setAgents(data); })
+        .catch(error => { if (active) notify(error.message); })
+        .finally(() => { if (active) setAgentsLoading(false); });
+    } else {
+      setAgents([]);
+      setAgentsLoading(false);
+    }
     api.getTickets(auth)
       .then(data => { if (active) setTickets(data); })
       .catch(error => { if (active) notify(error.message); })
       .finally(() => { if (active) setTicketsLoading(false); });
 
     return () => { active = false; };
-  }, [auth?.token]);
+  }, [auth?.token, isStaff, agentsRevision]);
 
   const navigate = useCallback((nextPage, nextTicketView = 'all') => {
     setPage(nextPage);
@@ -124,6 +141,25 @@ export default function App() {
         }
         : ticket));
       notify('Ticket updated successfully');
+    } catch (error) {
+      notify(error.message);
+    }
+  };
+
+  const assignTicket = async (ticketId, assignedTo) => {
+    try {
+      const updatedTicket = await api.assignTicket(auth, ticketId, assignedTo);
+      setTickets(current => current.map(ticket => ticket.id === ticketId
+        ? {
+          ...ticket,
+          ...updatedTicket,
+          tags: ticket.tags,
+          attachments: ticket.attachments,
+          comments: ticket.comments,
+          activity: ticket.activity,
+        }
+        : ticket));
+      notify(assignedTo == null ? 'Ticket unassigned' : 'Ticket assigned successfully');
     } catch (error) {
       notify(error.message);
     }
@@ -262,10 +298,28 @@ export default function App() {
     }
     if (page === 'New ticket') return <NewTicketPage go={navigate} onCreateTicket={createTicket} onTicketCreated={openTicket} />;
     if (page === 'Ticket detail' && selectedTicket) {
-      return <TicketDetailPage ticket={selectedTicket} staff={isStaff} go={navigate} onUpdateStatus={updateTicketStatus} />;
+      return (
+        <TicketDetailPage
+          ticket={selectedTicket}
+          staff={isStaff}
+          agents={agents}
+          agentsLoading={agentsLoading}
+          go={navigate}
+          onUpdateStatus={updateTicketStatus}
+          onAssignTicket={assignTicket}
+        />
+      );
     }
     if (page === 'Knowledge base') return <KnowledgeBasePage go={navigate} />;
     if (page === 'Reports') return <ReportsPage tickets={visibleTickets} users={[auth]} />;
+    if (page === 'User management' && auth.role === 'Admin') {
+      return (
+        <UserManagementPage
+          auth={auth}
+          onAgentRoleChange={() => setAgentsRevision(revision => revision + 1)}
+        />
+      );
+    }
     if (page === 'Settings') {
       return (
         <SettingsPage

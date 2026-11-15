@@ -48,19 +48,28 @@ export default function AuthScreen({ onAuthenticate, toast }) {
           <form onSubmit={submit}>
             {mode === 'register' && (
               <>
-                <label>Full name<input name="name" placeholder="Your full name" required /></label>
+                <label>Full name<input name="name" placeholder="Your full name" maxLength="100" required /></label>
                 <label>
                   Department
                   <select name="department">{departments.map(department => <option key={department}>{department}</option>)}</select>
                 </label>
               </>
             )}
-            <label>Email address<input type="email" name="email" placeholder="name@company.com" required /></label>
-            <label>Password<input type="password" name="password" placeholder="Enter your password" minLength="6" required /></label>
+            <label>Email address<input type="email" name="email" placeholder="name@company.com" maxLength="320" required /></label>
+            <label>
+              Password
+              <input
+                type="password"
+                name="password"
+                placeholder="Enter your password"
+                minLength={mode === 'register' ? 10 : undefined}
+                required
+              />
+            </label>
             {mode === 'register' && (
               <label>
                 Confirm password
-                <input type="password" name="rePassword" placeholder="Confirm your password" minLength="6" required />
+                <input type="password" name="rePassword" placeholder="Confirm your password" minLength="10" required />
               </label>
             )}
             <button className="btn primary full" type="submit">

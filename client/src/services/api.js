@@ -1,4 +1,4 @@
-const API_URL = (import.meta.env.VITE_API_URL || 'https://nexdesk-iamc.onrender.com/api').replace(/\/+$/, '');
+const API_URL = import.meta.env.VITE_API_URL;
 
 const categoryIds = {
   Hardware: 1,
@@ -54,6 +54,17 @@ export function normalizeUser(user, token) {
   };
 }
 
+function normalizeManagedUser(user) {
+  const department = String(user.department || '');
+  const departmentLabels = { it: 'IT', hr: 'HR', finance: 'Finance', safety: 'Safety' };
+  return {
+    ...user,
+    user_id: Number(user.user_id),
+    department: departmentLabels[department.toLowerCase()] || department.replace(/\b\w/g, letter => letter.toUpperCase()),
+    role: String(user.role || 'user').toLowerCase(),
+  };
+}
+
 export function normalizeTicket(ticket, auth) {
   const parsedCreatedAt = new Date(ticket.createdAt).getTime();
   const createdAt = Number.isFinite(parsedCreatedAt) ? parsedCreatedAt : Date.now();
@@ -69,7 +80,7 @@ export function normalizeTicket(ticket, auth) {
     category: categoriesById[categoryId] || `Category ${categoryId}`,
     priority: String(ticket.priority || 'Medium').replace(/\b\w/g, letter => letter.toUpperCase()),
     status: statuses[status] || ticket.status,
-    assignee: assignedTo == null ? 'Unassigned' : `User #${assignedTo}`,
+    assignee: assignedTo == null ? 'Unassigned' : (ticket.assignedToName || `User #${assignedTo}`),
     assignedTo,
     by: createdBy === Number(auth.user_id) ? auth.name : `User #${createdBy}`,
     createdBy,
@@ -101,12 +112,75 @@ export const api = {
     });
   },
 
-  async getTickets(auth) {
-    const body = await request('/tickets', { token: auth.token });
+  async getUsers(auth) {
+    const body = await request('/admin/users', { token: auth.token });
     if (!Array.isArray(body.data)) {
-      throw new Error('The API returned an invalid ticket list.');
+      throw new Error('The API returned an invalid user list.');
     }
-    return body.data.map(ticket => normalizeTicket(ticket, auth));
+    return body.data.map(normalizeManagedUser);
+  },
+
+  async updateUserRole(auth, userId, role) {
+    const body = await request(`/admin/users/${userId}`, {
+      method: 'PATCH',
+      token: auth.token,
+      body: JSON.stringify({ role }),
+    });
+    if (!body.data || Number(body.data.user_id) !== Number(userId)) {
+      throw new Error('The API returned an invalid updated user.');
+    }
+    return normalizeManagedUser(body.data);
+  },
+
+  async getTickets(auth) {
+    const limit = 100;
+    const tickets = [];
+    let offset = 0;
+
+    while (true) {
+      const body = await request(`/tickets?limit=${limit}&offset=${offset}`, { token: auth.token });
+      if (
+        !Array.isArray(body.data)
+        || !body.pagination
+        || body.pagination.offset !== offset
+        || body.pagination.limit !== limit
+        || typeof body.pagination.hasMore !== 'boolean'
+        || (body.pagination.hasMore && body.data.length === 0)
+      ) {
+        throw new Error('The API returned an invalid ticket page.');
+      }
+
+      tickets.push(...body.data);
+      if (!body.pagination.hasMore) break;
+
+      const nextOffset = offset + body.pagination.limit;
+      if (!Number.isSafeInteger(nextOffset) || nextOffset <= offset) {
+        throw new Error('The API returned invalid pagination details.');
+      }
+      offset = nextOffset;
+    }
+
+    return tickets.map(ticket => normalizeTicket(ticket, auth));
+  },
+
+  async getTicketAssignees(auth) {
+    const body = await request('/tickets/assignees', { token: auth.token });
+    if (!Array.isArray(body.data)) {
+      throw new Error('The API returned an invalid agent list.');
+    }
+    return body.data;
+  },
+
+  async assignTicket(auth, ticketId, assignedTo) {
+    const body = await request(`/tickets/${ticketId}/assignee`, {
+      method: 'PATCH',
+      token: auth.token,
+      body: JSON.stringify({ assignedTo }),
+    });
+    if (!body.data) {
+      throw new Error('The API returned an invalid assignment response.');
+    }
+    return normalizeTicket(body.data, auth);
   },
 
   async createTicket(auth, ticket) {

@@ -6,6 +6,7 @@ import {
   Plus,
   Settings,
   Ticket,
+  Users,
 } from 'lucide-react';
 import { canManageTickets } from '../utils/permissions.js';
 
@@ -20,7 +21,7 @@ export function getNavigation(role, department) {
     ];
   }
 
-  return [
+  const items = [
     ['Dashboard', LayoutDashboard],
     ['All tickets', Ticket],
     ['Assigned to me', Headphones],
@@ -29,4 +30,10 @@ export function getNavigation(role, department) {
     ['Knowledge base', BookOpen],
     ['Settings', Settings],
   ];
+
+  if (String(role || '').toLowerCase() === 'admin') {
+    items.splice(items.length - 1, 0, ['User management', Users]);
+  }
+
+  return items;
 }

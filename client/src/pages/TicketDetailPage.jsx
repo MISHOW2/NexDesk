@@ -15,10 +15,28 @@ import { timeAgo, SLA_HOURS, getSlaInfo } from '../utils/ticket.js';
 const statuses = ['Open', 'In progress', 'Resolved', 'Closed'];
 const priorities = ['Low', 'Medium', 'High', 'Urgent'];
 
-export default function TicketDetailPage({ ticket, staff, go, onUpdateStatus }) {
+export default function TicketDetailPage({
+  ticket,
+  staff,
+  agents,
+  agentsLoading,
+  go,
+  onUpdateStatus,
+  onAssignTicket,
+}) {
   const [tab, setTab] = useState('conversation');
+  const [savingAssignment, setSavingAssignment] = useState(false);
   const sla = getSlaInfo(ticket);
   const changeStatus = status => onUpdateStatus(ticket.id, status, `Status changed to ${status}`);
+  const changeAssignee = async event => {
+    setSavingAssignment(true);
+    try {
+      await onAssignTicket(ticket.id, event.target.value ? Number(event.target.value) : null);
+    } finally {
+      setSavingAssignment(false);
+    }
+  };
+  const currentAssigneeAvailable = agents.some(agent => Number(agent.user_id) === ticket.assignedTo);
 
   return (
     <>
@@ -83,9 +101,30 @@ export default function TicketDetailPage({ ticket, staff, go, onUpdateStatus }) 
               <select value={ticket.priority} disabled>{priorities.map(priority => <option key={priority}>{priority}</option>)}</select>
             </label>
             <label>Assigned to
-              <select value={ticket.assignee} disabled><option>{ticket.assignee}</option></select>
+              <select
+                value={ticket.assignedTo == null ? '' : String(ticket.assignedTo)}
+                disabled={!staff || agentsLoading || savingAssignment}
+                onChange={changeAssignee}
+              >
+                <option value="">Unassigned</option>
+                {ticket.assignedTo != null && !currentAssigneeAvailable && (
+                  <option value={ticket.assignedTo}>{ticket.assignee}</option>
+                )}
+                {agents.map(agent => (
+                  <option key={agent.user_id} value={agent.user_id}>{agent.name}</option>
+                ))}
+              </select>
             </label>
-            <p className="muted">Priority, assignment, comments, and deletion are not supported by the API yet.</p>
+            <p className="muted">
+              {!staff
+                ? 'Assignment is managed by support.'
+                : agentsLoading
+                  ? 'Loading agents…'
+                  : agents.length
+                    ? 'Assign this ticket to an agent.'
+                    : 'No agents are currently available.'}
+              {' '}Priority, comments, and deletion are not supported yet.
+            </p>
           </section>
           <section className="panel detail-panel">
             <h3>Tags</h3>

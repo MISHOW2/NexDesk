@@ -2,34 +2,38 @@
 
 import * as userService from "../services/userService.js";
 
-export const register = async (req, res) => {
+export const register = async (req, res, next) => {
   try {
-    await userService.registerUser(req.body);
+    await userService.registerUser(req.body && typeof req.body === "object" ? req.body : {});
 
-    res.status(201).json({
+    return res.status(201).json({
       message: "User registered",
     });
   } catch (err) {
-    res.status(400).json({
-      message: err.message,
-    });
+    if (err.statusCode && err.statusCode < 500) {
+      return res.status(err.statusCode).json({ success: false, message: err.message });
+    }
+    return next(err);
   }
 };
 
-export const login = async (req, res) => {
+export const login = async (req, res, next) => {
   try {
-    const {user , token} = await userService.userLogin(req.body);
+    const {user , token} = await userService.userLogin(
+      req.body && typeof req.body === "object" ? req.body : {}
+    );
 
     const { password, ...safeUser } = user;
 
-    res.status(200).json({
+    return res.status(200).json({
       message: "Login successful",
       user: safeUser,
       token: token
     });
   } catch (error) {
-    res.status(400).json({
-      message: error.message,
-    });
+    if (error.statusCode && error.statusCode < 500) {
+      return res.status(error.statusCode).json({ success: false, message: error.message });
+    }
+    return next(error);
   }
 };

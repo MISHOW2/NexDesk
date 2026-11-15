@@ -6,12 +6,14 @@ import express from "express";
 import jwt from "jsonwebtoken";
 import { query } from "../data/db.js";
 import ticketRoutes from "./ticketRoutes.js";
+import { errorHandler } from "../middlewares/errorHandler.js";
 
 const originalJwtSecret = process.env.JWT_SECRET;
 const userIds = [];
 const app = express();
 app.use(express.json());
 app.use("/api/tickets", ticketRoutes);
+app.use(errorHandler);
 
 let server;
 let baseUrl;
@@ -99,6 +101,28 @@ describe("ticket routes", () => {
         }),
       });
 
+    const invalidPriority = await request("/", requesterToken, {
+      method: "POST",
+      body: JSON.stringify({
+        title: "Invalid priority",
+        description: "Test ticket description",
+        priority: 3,
+        categoryId: 3,
+      }),
+    });
+    assert.equal(invalidPriority.status, 400);
+
+    const oversizedTitle = await request("/", requesterToken, {
+      method: "POST",
+      body: JSON.stringify({
+        title: "t".repeat(201),
+        description: "Test ticket description",
+        priority: "low",
+        categoryId: 3,
+      }),
+    });
+    assert.equal(oversizedTitle.status, 400);
+
     const firstResponse = await create(requesterToken, "Requester ticket");
     const firstBody = await firstResponse.json();
     assert.equal(firstResponse.status, 201, JSON.stringify(firstBody));
@@ -112,6 +136,15 @@ describe("ticket routes", () => {
     const requesterList = await request("/", requesterToken);
     assert.equal(requesterList.status, 200);
     assert.deepEqual((await requesterList.json()).data.map((ticket) => ticket.ticket_id), [firstTicket.ticket_id]);
+
+    const pagedStaffTickets = await request("/?limit=1&offset=0", agentToken);
+    assert.equal(pagedStaffTickets.status, 200);
+    const pagedBody = await pagedStaffTickets.json();
+    assert.equal(pagedBody.data.length, 1);
+    assert.equal(pagedBody.pagination.hasMore, true);
+
+    const invalidPageSize = await request("/?limit=0", agentToken);
+    assert.equal(invalidPageSize.status, 400);
 
     const hiddenTicket = await request(`/${secondTicket.ticket_id}`, requesterToken);
     assert.equal(hiddenTicket.status, 404);
@@ -129,15 +162,22 @@ describe("ticket routes", () => {
     const itDepartmentList = await request("/", itUserToken);
     assert.equal(itDepartmentList.status, 200);
     const itTicketIds = (await itDepartmentList.json()).data.map((ticket) => Number(ticket.ticket_id));
-    assert.ok(itTicketIds.includes(Number(firstTicket.ticket_id)));
-    assert.ok(itTicketIds.includes(Number(secondTicket.ticket_id)));
+    assert.deepEqual(itTicketIds, []);
 
     const itUpdate = await request(`/${firstTicket.ticket_id}`, itUserToken, {
       method: "PATCH",
       body: JSON.stringify({ status: "resolved" }),
     });
-    assert.equal(itUpdate.status, 200);
-    assert.equal((await itUpdate.json()).data.status, "resolved");
+    assert.equal(itUpdate.status, 403);
+
+    const requesterAssignees = await request("/assignees", requesterToken);
+    assert.equal(requesterAssignees.status, 403);
+
+    const assigneesResponse = await request("/assignees", agentToken);
+    assert.equal(assigneesResponse.status, 200);
+    const assignees = (await assigneesResponse.json()).data;
+    assert.ok(assignees.some((agent) => agent.user_id === userIds[3]));
+    assert.equal(assignees.some((agent) => agent.user_id === userIds[0]), false);
 
     const staffList = await request("/", agentToken);
     assert.equal(staffList.status, 200);
@@ -145,11 +185,45 @@ describe("ticket routes", () => {
     assert.ok(staffTicketIds.includes(Number(firstTicket.ticket_id)));
     assert.ok(staffTicketIds.includes(Number(secondTicket.ticket_id)));
 
+    const invalidAssignee = await request(`/${firstTicket.ticket_id}/assignee`, agentToken, {
+      method: "PATCH",
+      body: JSON.stringify({ assignedTo: userIds[0] }),
+    });
+    assert.equal(invalidAssignee.status, 400);
+
+    const assignment = await request(`/${firstTicket.ticket_id}/assignee`, agentToken, {
+      method: "PATCH",
+      body: JSON.stringify({ assignedTo: userIds[3] }),
+    });
+    assert.equal(assignment.status, 200);
+    const assignedTicket = (await assignment.json()).data;
+    assert.equal(assignedTicket.assignedTo, userIds[3]);
+    assert.equal(assignedTicket.assignedToName, "Ticket agent");
+
+    const unassignment = await request(`/${firstTicket.ticket_id}/assignee`, agentToken, {
+      method: "PATCH",
+      body: JSON.stringify({ assignedTo: null }),
+    });
+    assert.equal(unassignment.status, 200);
+    assert.equal((await unassignment.json()).data.assignedTo, null);
+
     const update = await request(`/${firstTicket.ticket_id}`, agentToken, {
       method: "PATCH",
       body: JSON.stringify({ status: "resolved" }),
     });
     assert.equal(update.status, 200);
     assert.equal((await update.json()).data.status, "resolved");
+
+    const history = await query(
+      `SELECT previous_status, new_status, changed_by
+       FROM ticket_status_history
+       WHERE ticket_id = $1`,
+      [firstTicket.ticket_id]
+    );
+    assert.deepEqual(history.rows, [{
+      previous_status: "open",
+      new_status: "resolved",
+      changed_by: userIds[3],
+    }]);
   });
 });

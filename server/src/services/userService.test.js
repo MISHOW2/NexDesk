@@ -71,6 +71,26 @@ describe("userService", () => {
     );
   });
 
+  it("normalizes concurrent duplicate registrations to the generic registration error", async () => {
+    const email = uniqueEmail("concurrent-duplicate");
+    const registration = {
+      name: "Concurrent User",
+      email,
+      department: "IT",
+      password: "Password123!",
+      rePassword: "Password123!",
+    };
+
+    const results = await Promise.allSettled([
+      userService.registerUser(registration),
+      userService.registerUser(registration),
+    ]);
+
+    assert.equal(results.filter((result) => result.status === "fulfilled").length, 1);
+    const failure = results.find((result) => result.status === "rejected");
+    assert.equal(failure.reason.message, "Registration failed, please contact administrator");
+  });
+
   it("throws when registering with an invalid department", async () => {
     await assert.rejects(
       userService.registerUser({
@@ -81,6 +101,31 @@ describe("userService", () => {
         rePassword: "Password123!",
       }),
       { message: "Invalid department" }
+    );
+  });
+
+  it("rejects passwords that are too short or exceed bcrypt's byte limit", async () => {
+    await assert.rejects(
+      userService.registerUser({
+        name: "Short Password",
+        email: uniqueEmail("short-password"),
+        department: "IT",
+        password: "Aa1!short",
+        rePassword: "Aa1!short",
+      }),
+      { message: /at least 10 characters/ }
+    );
+
+    const longPassword = "é".repeat(37);
+    await assert.rejects(
+      userService.registerUser({
+        name: "Long Password",
+        email: uniqueEmail("long-password"),
+        department: "IT",
+        password: longPassword,
+        rePassword: longPassword,
+      }),
+      { message: /72 UTF-8 bytes/ }
     );
   });
 

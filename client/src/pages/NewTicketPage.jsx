@@ -48,6 +48,7 @@ export default function NewTicketPage({ go, onCreateTicket, onTicketCreated }) {
               <input
                 name="title"
                 required
+                maxLength="200"
                 placeholder="Briefly describe the issue"
                 value={title}
                 onChange={event => setTitle(event.target.value)}
@@ -59,7 +60,7 @@ export default function NewTicketPage({ go, onCreateTicket, onTicketCreated }) {
                 <button type="button" onClick={() => go('Knowledge base')}>{article} →</button>
               </div>
             ))}
-            <label>Description <span>*</span><textarea name="description" required rows="6" placeholder="What happened? What have you already tried?" /></label>
+            <label>Description <span>*</span><textarea name="description" required maxLength="5000" rows="6" placeholder="What happened? What have you already tried?" /></label>
             <label>Category
               <select name="category">{categories.map(category => <option key={category}>{category}</option>)}</select>
             </label>

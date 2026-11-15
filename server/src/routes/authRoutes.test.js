@@ -103,4 +103,28 @@ describe("auth routes", () => {
 
     assert.equal(response.status, 201);
   });
+
+  it("limits login attempts per IP", async () => {
+    for (let attempt = 0; attempt < 9; attempt += 1) {
+      const response = await fetch(`${baseUrl}/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: `unknown.${attempt}@example.edu.za`,
+          password: "WrongPassword123!",
+        }),
+      });
+      assert.equal(response.status, 401);
+    }
+
+    const limited = await fetch(`${baseUrl}/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: "unknown@example.edu.za",
+        password: "WrongPassword123!",
+      }),
+    });
+    assert.equal(limited.status, 429);
+  });
 });

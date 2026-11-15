@@ -39,7 +39,7 @@ The API listens on `PORT` (5000 by default). Run the backend tests from `server`
 npm test
 ```
 
-The API provides authentication and ticket endpoints. See [server/README.md](./server/README.md) for routes, database setup, and current limitations.
+The API provides authentication, ticket, and administrator-only user-management endpoints. See [server/README.md](./server/README.md) for routes, database setup, and current limitations.
 
 ## Project layout
 
@@ -62,6 +62,6 @@ ROADMAP.md              Learning and feature milestones
 
 ## Configuration and safety
 
-The backend reads `PORT`, `JWT_SECRET`, `ALLOWED_EMAIL_DOMAIN`, and its PostgreSQL connection settings from `server/.env`. Never commit `.env` or expose database credentials. The frontend uses `VITE_API_URL` to override its default API URL.
+The backend reads `PORT`, `JWT_SECRET`, `ALLOWED_EMAIL_DOMAIN`, `CLIENT_ORIGINS`, and its PostgreSQL connection settings from `server/.env`. Never commit `.env` or expose database credentials. The frontend uses `VITE_API_URL` to override its default API URL.
 
 This project is still under development. Some frontend features are not yet synchronized with the API. Review the backend limitations and deployment security before production use.

@@ -5,6 +5,7 @@ import { validateCompanyEmail } from '../middlewares/authMiddleWare/emailDomainM
 import { login, register } from '../controllers/authControllers.js';
 import { validatePassword } from '../middlewares/authMiddleWare/passwordMiddleware.js';
 import { registerLimiter } from '../middlewares/authMiddleWare/registerLimiter.js';
+import { loginLimiter } from '../middlewares/authMiddleWare/loginLimiter.js';
 import { authenticate } from '../middlewares/authMiddleWare/authenticate.js';
 
 const router = express.Router();
@@ -18,7 +19,7 @@ const registrationMiddleware = [
 
 router.post('/register', ...registrationMiddleware);
 router.post('/signup', ...registrationMiddleware);
-router.post('/login', login);
+router.post('/login', loginLimiter, login);
 router.get('/me', authenticate, (req, res) => {
   res.json({ message: "You are authenticated", user: req.user });
 });

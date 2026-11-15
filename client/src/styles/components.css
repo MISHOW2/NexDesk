@@ -100,6 +100,7 @@ input[type=checkbox]{accent-color:var(--accent-strong);width:16px;height:16px}
 .logout-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:6px;background:#10213f;border:1px solid #1c2f50;color:#a9c4ee;border-radius:9px;padding:10px;font-size:12.5px;font-weight:700}
 .logout-btn:hover{background:#3b1620;border-color:#5b2230;color:#f87171}
 @media(max-height:820px){.help-box{display:none}}
+.admin-message{padding:10px 24px;margin:0;font-size:12px}.admin-message.error{color:var(--red)}.admin-message.success{color:var(--green)}.role-hint{display:block;color:var(--text-4);font-size:10px;margin-top:5px}
 /* users admin */
 .btn.sm{padding:7px 11px;font-size:12px;border-radius:8px}.btn:disabled{opacity:.4;cursor:not-allowed}
 .row-actions{display:flex;gap:8px}.danger-text{color:var(--red)}.danger-text:hover{border-color:var(--red);color:var(--red)}
